@@ -17,17 +17,17 @@ function ConfidenceBadge({ level }: { level: string }) {
   )
 }
 
-function ProbBar({ label, value, color }: { label: string; value: number; color: string }) {
+function ProbBar({ label, value, color }: { label: string; value: number | null | undefined; color: string }) {
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs text-slate-400">
         <span className="truncate max-w-[80px]">{label}</span>
-        <span className="font-bold text-white">{value.toFixed(1)}%</span>
+        <span className="font-bold text-white">{(value ?? 0).toFixed(1)}%</span>
       </div>
       <div className="h-2 bg-surface-600 rounded-full overflow-hidden">
         <div
           className={clsx('h-full rounded-full prob-bar', color)}
-          style={{ '--target-width': `${value}%`, width: `${value}%` } as React.CSSProperties}
+          style={{ '--target-width': `${value ?? 0}%`, width: `${value ?? 0}%` } as React.CSSProperties}
         />
       </div>
     </div>
@@ -36,9 +36,9 @@ function ProbBar({ label, value, color }: { label: string; value: number; color:
 
 export default function PredictionCard({ p }: { p: Prediction }) {
   const winner =
-    p.prob_equipo1 > p.prob_empate && p.prob_equipo1 > p.prob_equipo2
+    (p.prob_equipo1 ?? 0) > (p.prob_empate ?? 0) && (p.prob_equipo1 ?? 0) > (p.prob_equipo2 ?? 0)
       ? 'equipo1'
-      : p.prob_equipo2 > p.prob_empate && p.prob_equipo2 > p.prob_equipo1
+      : (p.prob_equipo2 ?? 0) > (p.prob_empate ?? 0) && (p.prob_equipo2 ?? 0) > (p.prob_equipo1 ?? 0)
       ? 'equipo2'
       : 'empate'
 
@@ -82,11 +82,11 @@ export default function PredictionCard({ p }: { p: Prediction }) {
         <div className="flex items-center justify-between pt-3 border-t border-surface-500">
           <div className="text-center">
             <p className="text-xs text-slate-500">Over 2.5</p>
-            <p className="text-sm font-bold text-white">{p.prob_over25.toFixed(0)}%</p>
+            <p className="text-sm font-bold text-white">{(p.prob_over25 ?? 0).toFixed(0)}%</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-slate-500">BTTS</p>
-            <p className="text-sm font-bold text-white">{p.prob_btts.toFixed(0)}%</p>
+            <p className="text-sm font-bold text-white">{(p.prob_btts ?? 0).toFixed(0)}%</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-slate-500">λ1 / λ2</p>

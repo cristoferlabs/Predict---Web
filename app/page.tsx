@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getTodayPredictions, getPredictions } from '@/lib/supabase'
 import PredictionCard from '@/components/PredictionCard'
 import PowerBIEmbed from '@/components/PowerBIEmbed'
