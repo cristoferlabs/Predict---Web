@@ -6,7 +6,8 @@ import type { Prediction } from '@/types'
 
 const n = (v: number | null | undefined, d = 1) => (v ?? 0).toFixed(d)
 
-// Extract a section from analisis_completo by searching for keyword(s) in headers
+// Extract a section from analisis_completo by searching for keyword(s) in headers.
+// Sections end when a new line starts with a high-codepoint emoji (cp > 0x2500).
 function getSection(text: string | null, ...keys: string[]): string | null {
   if (!text) return null
   for (const key of keys) {
@@ -14,9 +15,16 @@ function getSection(text: string | null, ...keys: string[]): string | null {
     if (idx === -1) continue
     const start = text.indexOf('\n', idx) + 1
     const rest = text.slice(start)
-    const nextSection = rest.search(/\n[📊⚽🤝📋📜⚔️⭐📰🏆🎯]/u)
-    const content = nextSection === -1 ? rest : rest.slice(0, nextSection)
-    if (content.trim()) return content.trim()
+    const lines = rest.split('\n')
+    let end = rest.length
+    let pos = 0
+    for (let i = 1; i < lines.length; i++) {
+      pos += lines[i - 1].length + 1
+      const cp = lines[i].trimStart().codePointAt(0)
+      if (cp != null && cp > 0x2500) { end = pos; break }
+    }
+    const content = rest.slice(0, end).trim()
+    if (content) return content
   }
   return null
 }
