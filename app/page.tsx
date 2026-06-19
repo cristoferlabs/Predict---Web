@@ -5,9 +5,6 @@ import PredictionCard from '@/components/PredictionCard'
 import PowerBIEmbed from '@/components/PowerBIEmbed'
 import type { Prediction } from '@/types'
 
-export const revalidate = 60 // revalidate every 60s
-
-// Demo data for when Supabase is not configured
 const DEMO: Prediction[] = [
   {
     id: 'demo-1',
@@ -45,9 +42,9 @@ const DEMO: Prediction[] = [
     tiros_avg: 11.4,
     top5_apuestas: [
       { mercado: 'Doble Oportunidad 1X', probabilidad: 69, riesgo: 'Medio' },
-      { mercado: 'Under 2.5 Goles', probabilidad: 77, riesgo: 'Bajo' },
-      { mercado: 'Menos de 4.5 corners (c/equipo)', probabilidad: 71, riesgo: 'Bajo' },
-      { mercado: 'Ambos marcan: No', probabilidad: 68, riesgo: 'Medio' },
+      { mercado: 'Under 2.5 Goles',      probabilidad: 77, riesgo: 'Bajo' },
+      { mercado: 'Menos de 4.5 corners', probabilidad: 71, riesgo: 'Bajo' },
+      { mercado: 'Ambos marcan: No',     probabilidad: 68, riesgo: 'Medio' },
       { mercado: 'Menos de 3.5 amarillas', probabilidad: 55, riesgo: 'Medio' },
     ],
   },
@@ -66,68 +63,71 @@ async function fetchPredictions(): Promise<Prediction[]> {
 
 export default async function DashboardPage() {
   const predictions = await fetchPredictions()
-  const today = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+  const dateLabel = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Hero */}
-      <div className="mb-10">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl">🏆</span>
-          <div>
-            <h1 className="text-3xl font-black">
-              <span className="text-gradient">Mundial 2026</span>
-            </h1>
-            <p className="text-slate-400 capitalize">{today}</p>
-          </div>
+    <div style={{ maxWidth: 1320, margin: '0 auto', padding: '28px 26px 56px' }}>
+
+      {/* ── Page header ─────────────────────────────────────── */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, fontWeight: 600, color: '#5b636e', marginBottom: 5 }}>
+          ⚽ Mundial 2026 · Prediction Agent
         </div>
-        <p className="text-slate-400 max-w-xl">
-          Predicciones generadas con IA, modelo XGBoost + Poisson + Elo entrenado sobre 45,000 partidos históricos.
+        <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-.5px', color: '#f3f5f7', lineHeight: 1.2 }}>
+          Predicciones del día
+        </h1>
+        <p style={{ fontSize: 13, color: '#6b727c', fontWeight: 500, marginTop: 5, maxWidth: 480, textTransform: 'capitalize' }}>
+          {dateLabel} · Modelo XGBoost + Poisson + Elo entrenado sobre 45,000 partidos históricos.
         </p>
       </div>
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      {/* ── Summary strip ───────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
+        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, fontWeight: 600, color: '#6b727c' }}>
+          Partidos · <span style={{ color: '#e8eaed' }}>{predictions.length}</span> encontrados
+        </div>
+        <div style={{ flex: 1 }} />
         {[
-          { label: 'Partidos hoy', value: predictions.length },
-          { label: 'Modelo activo', value: 'XGB+Elo' },
-          { label: 'Actualizado', value: 'Hace <1 min' },
-        ].map((s) => (
-          <div key={s.label} className="bg-surface-700 border border-surface-500 rounded-xl p-4 text-center">
-            <p className="text-xl font-bold text-brand-gold">{s.value}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+          { label: 'Modelo activo',  value: 'XGB+Elo' },
+          { label: 'Actualizado', value: '<1 min' },
+        ].map(({ label, value }) => (
+          <div key={label} style={{ background: '#14171c', border: '1px solid #232830', borderRadius: 10, padding: '7px 15px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12.5, fontWeight: 600, color: '#f3f5f7' }}>{value}</span>
+            <span style={{ fontSize: 11, color: '#6b727c', fontWeight: 600 }}>{label}</span>
           </div>
         ))}
       </div>
 
-      {/* Prediction grid */}
-      <h2 className="text-lg font-bold text-white mb-4">Predicciones del día</h2>
+      {/* ── Prediction grid ─────────────────────────────────── */}
       {predictions.length === 0 ? (
-        <div className="text-center py-16 text-slate-500">
-          <p className="text-4xl mb-3">⚽</p>
-          <p>No hay partidos predichos para hoy</p>
+        <div style={{ textAlign: 'center', padding: '64px 0', color: '#5b636e' }}>
+          <p style={{ fontSize: 36, marginBottom: 12 }}>⚽</p>
+          <p style={{ fontSize: 14, fontWeight: 500 }}>No hay partidos predichos para hoy</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-12">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: 16, marginBottom: 52 }}>
           {predictions.map((p) => (
             <PredictionCard key={p.id} p={p} />
           ))}
         </div>
       )}
 
-      {/* Power BI section */}
-      <div className="mt-12">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-white">📊 Analytics Power BI</h2>
+      {/* ── Power BI section ────────────────────────────────── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, color: '#dfe3e8', textTransform: 'uppercase', letterSpacing: '.5px' }}>
+            📊 Analytics Power BI
+          </h2>
           <a
             href="/analytics"
-            className="text-sm text-brand-gold hover:underline"
+            style={{ fontSize: 13, color: '#4f95d6', fontWeight: 600, textDecoration: 'none' }}
           >
             Ver dashboard completo →
           </a>
         </div>
         <PowerBIEmbed height={480} title="Predicciones Mundial 2026" />
       </div>
+
     </div>
   )
 }

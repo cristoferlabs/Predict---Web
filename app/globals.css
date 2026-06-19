@@ -3,48 +3,72 @@
 @tailwind utilities;
 
 :root {
-  --gold: #F5A623;
-  --green: #00C853;
-  --red: #FF3D57;
-  --blue: #1A8FFF;
+  --bg:          #0a0c0f;
+  --sidebar:     #0d1015;
+  --card:        #14171c;
+  --card-deep:   #101318;
+  --border:      #1c2127;
+  --border-strong: #232830;
+  --text-1:      #f3f5f7;
+  --text-2:      #e8eaed;
+  --text-3:      #dfe3e8;
+  --text-muted:  #9aa1ab;
+  --text-dim:    #7c8492;
+  --text-faint:  #6b727c;
+  --blue:        #4f95d6;
+  --blue-bright: #3aa0ff;
+  --blue-dark:   #1170c4;
+  --green:       #34d399;
+  --yellow:      #fbbf24;
+  --orange:      #f0a868;
+  --red:         #f87171;
+  --gray-conf:   #8b93a0;
 }
 
 body {
-  background-color: #0A0E1A;
-  color: #E2E8F0;
-  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-2);
+  font-family: 'Public Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #111827; }
-::-webkit-scrollbar-thumb { background: #2E384D; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #F5A623; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #252b34; border-radius: 8px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-track { background: transparent; }
 
-/* Confidence badge glow */
-.badge-alta { box-shadow: 0 0 12px rgba(0, 200, 83, 0.4); }
-.badge-media { box-shadow: 0 0 12px rgba(245, 166, 35, 0.4); }
-.badge-baja { box-shadow: 0 0 12px rgba(255, 61, 87, 0.4); }
+input[type=date] { color-scheme: dark; }
+select option { background: var(--card); color: var(--text-2); }
+
+/* Confidence badges */
+.badge-alta  { box-shadow: 0 0 10px rgba(52, 211, 153, 0.30); }
+.badge-media { box-shadow: 0 0 10px rgba(251, 191,  36, 0.28); }
+.badge-baja  { box-shadow: 0 0 10px rgba(139, 147, 160, 0.22); }
 
 /* Card hover */
 .prediction-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 .prediction-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(245, 166, 35, 0.15);
+  border-color: var(--blue) !important;
 }
 
 /* Probability bar animation */
 @keyframes fillBar {
   from { width: 0%; }
-  to { width: var(--target-width); }
+  to   { width: var(--target-width); }
 }
 .prob-bar { animation: fillBar 0.8s ease-out forwards; }
 
 /* Gradient text */
 .text-gradient {
-  background: linear-gradient(135deg, #F5A623, #FF6B35);
+  background: linear-gradient(135deg, #3aa0ff, #1170c4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* Accordion caret transition */
+.accordion-caret { transition: transform 0.2s ease; }
+
+/* Mono utility */
+.font-mono-ui { font-family: 'IBM Plex Mono', monospace; }

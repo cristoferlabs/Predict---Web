@@ -2,32 +2,24 @@ import Link from 'next/link'
 import clsx from 'clsx'
 import type { Prediction } from '@/types'
 
-function ConfidenceBadge({ level }: { level: string }) {
-  return (
-    <span
-      className={clsx(
-        'text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider',
-        level === 'Alta' && 'bg-green-900/60 text-green-400 badge-alta',
-        level === 'Media' && 'bg-yellow-900/60 text-yellow-400 badge-media',
-        level === 'Baja' && 'bg-red-900/60 text-red-400 badge-baja'
-      )}
-    >
-      {level}
-    </span>
-  )
+function confStyle(level: string) {
+  if (level === 'Alta')  return { color: '#34d399', bg: 'rgba(52,211,153,.12)',  cls: 'badge-alta' }
+  if (level === 'Media') return { color: '#fbbf24', bg: 'rgba(251,191,36,.12)',  cls: 'badge-media' }
+  return                        { color: '#8b93a0', bg: 'rgba(139,147,160,.14)', cls: 'badge-baja' }
 }
 
 function ProbBar({ label, value, color }: { label: string; value: number | null | undefined; color: string }) {
+  const pct = value ?? 0
   return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-xs text-slate-400">
-        <span className="truncate max-w-[80px]">{label}</span>
-        <span className="font-bold text-white">{(value ?? 0).toFixed(1)}%</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#9aa1ab' }} className="truncate max-w-[90px]">{label}</span>
+        <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, fontWeight: 600, color: '#f3f5f7' }}>{pct.toFixed(1)}%</span>
       </div>
-      <div className="h-2 bg-surface-600 rounded-full overflow-hidden">
+      <div style={{ height: 6, background: '#1c2127', borderRadius: 4, overflow: 'hidden' }}>
         <div
-          className={clsx('h-full rounded-full prob-bar', color)}
-          style={{ '--target-width': `${value ?? 0}%`, width: `${value ?? 0}%` } as React.CSSProperties}
+          className="prob-bar"
+          style={{ height: '100%', borderRadius: 4, background: color, '--target-width': `${pct}%`, width: `${pct}%` } as React.CSSProperties}
         />
       </div>
     </div>
@@ -42,62 +34,75 @@ export default function PredictionCard({ p }: { p: Prediction }) {
       ? 'equipo2'
       : 'empate'
 
+  const cs = confStyle(p.confianza)
+  const pickLabel  = winner === 'equipo1' ? p.equipo1 : winner === 'equipo2' ? p.equipo2 : 'Empate'
+  const pickColor  = winner === 'empate'  ? '#9aa1ab' : winner === 'equipo1' ? '#4f95d6'  : '#f0a868'
+  const leadingPct = Math.max(p.prob_equipo1 ?? 0, p.prob_empate ?? 0, p.prob_equipo2 ?? 0)
+
   return (
     <Link href={`/partido/${p.id}`}>
-      <div className="prediction-card bg-surface-700 border border-surface-500 rounded-2xl p-5 cursor-pointer">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">
-            {p.ronda} {p.grupo && `· Grupo ${p.grupo}`}
+      <div
+        className="prediction-card cursor-pointer"
+        style={{ background: '#14171c', border: '1px solid #232830', borderRadius: 14, padding: '15px 16px' }}
+      >
+        {/* Top row: time/group + badge */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
+          <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, fontWeight: 600, color: '#6b727c' }}>
+            {p.hora} · {p.grupo ? `Grupo ${p.grupo}` : p.ronda}
           </span>
-          <ConfidenceBadge level={p.confianza} />
+          <span
+            className={cs.cls}
+            style={{ fontSize: 10.5, fontWeight: 700, color: cs.color, background: cs.bg, padding: '3px 9px', borderRadius: 20 }}
+          >
+            {p.confianza}
+          </span>
         </div>
 
-        {/* Teams */}
-        <div className="flex items-center justify-between mb-5">
-          <div className={clsx('text-center flex-1', winner === 'equipo1' && 'text-brand-gold')}>
-            <p className="font-bold text-lg leading-tight">{p.equipo1}</p>
-            {winner === 'equipo1' && <span className="text-xs text-brand-gold">Favorito ★</span>}
-          </div>
+        {/* Match title */}
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#f3f5f7', letterSpacing: '-.2px' }}>
+          {p.equipo1} <span style={{ color: '#39414c', fontWeight: 400 }}>vs</span> {p.equipo2}
+        </div>
 
-          <div className="text-center px-4">
-            <p className="text-2xl font-black text-slate-600">VS</p>
-            <p className="text-xs text-slate-500 mt-1">{p.hora}</p>
-          </div>
+        {/* Prediction row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#9aa1ab' }}>Predicción:</span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: pickColor }}>{pickLabel}</span>
+          <div style={{ flex: 1 }} />
+          <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, fontWeight: 600, color: '#f3f5f7' }}>
+            {leadingPct.toFixed(1)}%
+          </span>
+        </div>
 
-          <div className={clsx('text-center flex-1', winner === 'equipo2' && 'text-brand-gold')}>
-            <p className="font-bold text-lg leading-tight">{p.equipo2}</p>
-            {winner === 'equipo2' && <span className="text-xs text-brand-gold">Favorito ★</span>}
-          </div>
+        {/* Confidence bar */}
+        <div style={{ height: 5, background: '#1c2127', borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
+          <div style={{ height: '100%', borderRadius: 4, width: `${leadingPct.toFixed(0)}%`, background: cs.color }} />
         </div>
 
         {/* Probability bars */}
-        <div className="space-y-2 mb-4">
-          <ProbBar label={p.equipo1} value={p.prob_equipo1} color="bg-brand-blue" />
-          <ProbBar label="Empate" value={p.prob_empate} color="bg-slate-400" />
-          <ProbBar label={p.equipo2} value={p.prob_equipo2} color="bg-brand-gold" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 14 }}>
+          <ProbBar label={p.equipo1}  value={p.prob_equipo1} color="#4f95d6" />
+          <ProbBar label="Empate"     value={p.prob_empate}  color="#5b636e" />
+          <ProbBar label={p.equipo2}  value={p.prob_equipo2} color="#f0a868" />
         </div>
 
         {/* Footer stats */}
-        <div className="flex items-center justify-between pt-3 border-t border-surface-500">
-          <div className="text-center">
-            <p className="text-xs text-slate-500">Over 2.5</p>
-            <p className="text-sm font-bold text-white">{(p.prob_over25 ?? 0).toFixed(0)}%</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-slate-500">BTTS</p>
-            <p className="text-sm font-bold text-white">{(p.prob_btts ?? 0).toFixed(0)}%</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-slate-500">λ1 / λ2</p>
-            <p className="text-sm font-bold text-white">{p.lambda1} / {p.lambda2}</p>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 13, paddingTop: 12, borderTop: '1px solid #1c2127' }}>
+          {[
+            { label: 'Over 2.5', value: `${(p.prob_over25 ?? 0).toFixed(0)}%` },
+            { label: 'BTTS',     value: `${(p.prob_btts   ?? 0).toFixed(0)}%` },
+            { label: 'λ1 / λ2', value: `${p.lambda1 ?? 0} / ${p.lambda2 ?? 0}` },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 10.5, color: '#6b727c', fontWeight: 600 }}>{label}</div>
+              <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, fontWeight: 600, color: '#f3f5f7', marginTop: 2 }}>{value}</div>
+            </div>
+          ))}
           {p.resultado_real !== null && (
-            <div className="text-center">
-              <p className="text-xs text-slate-500">Resultado</p>
-              <p className={clsx('text-sm font-bold', p.acierto ? 'text-green-400' : 'text-red-400')}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 10.5, color: '#6b727c', fontWeight: 600 }}>Resultado</div>
+              <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 13, fontWeight: 600, marginTop: 2, color: p.acierto ? '#34d399' : '#f87171' }}>
                 {p.goles_equipo1} - {p.goles_equipo2}
-              </p>
+              </div>
             </div>
           )}
         </div>
