@@ -19,8 +19,36 @@ function impliedProb(odd: unknown): number | null {
   return Math.round((1 / o) * 1000) / 10  // one decimal
 }
 
+// Parse structured data from analisis_completo text as fallback for missing DB fields
+function parseAnalisis(text: string) {
+  if (!text) return {}
+  const num = (pattern: RegExp) => {
+    const m = text.match(pattern)
+    return m ? parseFloat(m[1]) : null
+  }
+  const str = (pattern: RegExp) => {
+    const m = text.match(pattern)
+    return m ? m[1].trim() : null
+  }
+  return {
+    prob1:     num(/(?:gana|local)[:\s]+(\d+\.?\d*)%/i),
+    probD:     num(/[Ee]mpate[:\s]+(\d+\.?\d*)%/i),
+    prob2:     num(/(?:visita|gana)[:\s]+.*?(\d+\.?\d*)%.*?(?:gana|visita)/is) ??
+               num(/(\d+\.?\d*)%\s*$/m),
+    probO25:   num(/[Oo]ver\s*2\.5[:\s]+(\d+\.?\d*)%/),
+    probBTTS:  num(/BTTS[:\s]+(?:Si|Sí)\s+(\d+\.?\d*)%/i),
+    lambda1:   num(/equipo1.*?λ[=\s]+(\d+\.?\d*)/i) ?? num(/λ[=\s]+(\d+\.?\d*)/),
+    lambda2:   num(/equipo2.*?λ[=\s]+(\d+\.?\d*)/i) ?? num(/λ.*?λ[=\s]+(\d+\.?\d*)/),
+    elo1:      num(/Elo.*?(\d{4})\s*pts/i),
+    resultado: str(/Resultado:\s*([^\n\-]+)/),
+    confianza: str(/Confianza\s+(Alta|Media|Baja)/i),
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transform(row: Record<string, any>): Prediction {
+  const parsed = parseAnalisis((row.analisis_completo as string) ?? '')
+
   return {
     // Identity
     id:         String(row.id ?? ''),
@@ -33,24 +61,24 @@ function transform(row: Record<string, any>): Prediction {
     equipo1:    String(row.equipo1 ?? ''),
     equipo2:    String(row.equipo2 ?? ''),
 
-    // Model probabilities — DB stores as float percentages (34.9, not 0.349)
-    prob_equipo1: Number(row.prob_local  ?? 0) || 0,
-    prob_empate:  Number(row.prob_empate ?? 0) || 0,
-    prob_equipo2: Number(row.prob_visita ?? 0) || 0,
+    // Model probabilities — fallback to parsed text if DB fields are 0/null
+    prob_equipo1: (row.prob_local  as number) || parsed.prob1  || 0,
+    prob_empate:  (row.prob_empate as number) || parsed.probD  || 0,
+    prob_equipo2: (row.prob_visita as number) || parsed.prob2  || 0,
 
-    // IA prediction
-    resultado_predicho: String(row.pred_1x2 ?? ''),
-    confianza: (row.pred_1x2_confianza as 'Alta' | 'Media' | 'Baja') ?? 'Baja',
+    // IA prediction — fallback to parsed text
+    resultado_predicho: (row.pred_1x2 as string) || parsed.resultado || '',
+    confianza: ((row.pred_1x2_confianza as string) || parsed.confianza || 'Baja') as 'Alta' | 'Media' | 'Baja',
 
-    // Over/BTTS — not stored as floats in DB; default 0
-    prob_over25: 0,
-    prob_btts:   0,
+    // Over/BTTS probabilities (fallback from analisis text)
+    prob_over25: (row.pred_prob_over25 as number) || parsed.probO25 || 0,
+    prob_btts:   (row.pred_prob_btts_si as number) || parsed.probBTTS || 0,
 
     // Mathematical model
-    lambda1: Number(row.lambda1 ?? 0) || 0,
-    lambda2: Number(row.lambda2 ?? 0) || 0,
-    elo1:    Number(row.elo1    ?? 0) || 0,
-    elo2:    Number(row.elo2    ?? 0) || 0,
+    lambda1: (row.lambda1 as number) ?? parsed.lambda1 ?? 0,
+    lambda2: (row.lambda2 as number) ?? parsed.lambda2 ?? 0,
+    elo1:    (row.elo1 as number)    ?? parsed.elo1    ?? 0,
+    elo2:    Number(row.elo2 ?? 0) || 0,
 
     // Market odds — DB cols: odd_local, odd_empate, odd_visita
     cuota1:       maybeNum(row.odd_local),
