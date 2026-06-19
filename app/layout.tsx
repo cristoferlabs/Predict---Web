@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Navbar from '@/components/Navbar'
+import Sidebar from '@/components/Sidebar'
 
 export const metadata: Metadata = {
   title: 'PitchIQ · Predict WC 2026',
@@ -23,15 +23,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="bg-surface-900 min-h-screen">
-        <Navbar />
-        <main className="pt-16">{children}</main>
-        <footer
-          className="mt-16 py-8 text-center text-sm"
-          style={{ borderTop: '1px solid #1c2127', color: '#6b727c' }}
-        >
-          <p>PitchIQ · Modelo XGBoost + Poisson + Elo · Solo informativo</p>
-        </footer>
+      <body style={{ display: 'flex', minHeight: '100vh', minWidth: 1100 }}>
+        <Sidebar />
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {children}
+        </div>
       </body>
     </html>
   )

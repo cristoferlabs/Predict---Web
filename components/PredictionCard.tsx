@@ -48,7 +48,7 @@ export default function PredictionCard({ p }: { p: Prediction }) {
         {/* Top row: time/group + badge */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
           <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, fontWeight: 600, color: '#6b727c' }}>
-            {p.hora} · {p.grupo ? `Grupo ${p.grupo}` : p.ronda}
+            {p.hora} · {p.grupo ? `Grupo ${p.grupo.replace(/^(Group|Grupo)\s+/i, '')}` : p.ronda}
           </span>
           <span
             className={cs.cls}
