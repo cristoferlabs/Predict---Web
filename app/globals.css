@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold: #F5A623;
+  --green: #00C853;
+  --red: #FF3D57;
+  --blue: #1A8FFF;
+}
+
+body {
+  background-color: #0A0E1A;
+  color: #E2E8F0;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #111827; }
+::-webkit-scrollbar-thumb { background: #2E384D; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #F5A623; }
+
+/* Confidence badge glow */
+.badge-alta { box-shadow: 0 0 12px rgba(0, 200, 83, 0.4); }
+.badge-media { box-shadow: 0 0 12px rgba(245, 166, 35, 0.4); }
+.badge-baja { box-shadow: 0 0 12px rgba(255, 61, 87, 0.4); }
+
+/* Card hover */
+.prediction-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.prediction-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(245, 166, 35, 0.15);
+}
+
+/* Probability bar animation */
+@keyframes fillBar {
+  from { width: 0%; }
+  to { width: var(--target-width); }
+}
+.prob-bar { animation: fillBar 0.8s ease-out forwards; }
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(135deg, #F5A623, #FF6B35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
