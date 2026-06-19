@@ -16,10 +16,9 @@ const DEMO: Prediction[] = [
     prob_impl1: 18.6, prob_impl_empate: 27.8, prob_impl2: 57.8,
     resultado_real: null, goles_equipo1: null, goles_equipo2: null, acierto: null,
     corners_avg: 5.2, amarillas_avg: 3.1, tiros_avg: 11.4,
-    top5_apuestas: [
-      { mercado: 'Doble Oportunidad 1X', probabilidad: 69, riesgo: 'Medio' },
-      { mercado: 'Under 2.5 Goles',      probabilidad: 77, riesgo: 'Bajo' },
-    ],
+    top5_apuestas: null,
+    pred_over25: 'Under 2.5', pred_btts: 'No',
+    analisis_completo: null, tiene_lesiones: null, tiene_suspension: null, hay_noticias_impacto: null,
   },
 ]
 
