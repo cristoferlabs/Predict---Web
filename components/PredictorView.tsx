@@ -6,6 +6,21 @@ import type { Prediction } from '@/types'
 
 const n = (v: number | null | undefined, d = 1) => (v ?? 0).toFixed(d)
 
+// Extract a section from analisis_completo by searching for keyword(s) in headers
+function getSection(text: string | null, ...keys: string[]): string | null {
+  if (!text) return null
+  for (const key of keys) {
+    const idx = text.indexOf(key)
+    if (idx === -1) continue
+    const start = text.indexOf('\n', idx) + 1
+    const rest = text.slice(start)
+    const nextSection = rest.search(/\n[📊⚽🤝📋📜⚔️⭐📰🏆🎯]/u)
+    const content = nextSection === -1 ? rest : rest.slice(0, nextSection)
+    if (content.trim()) return content.trim()
+  }
+  return null
+}
+
 function confStyle(level: string) {
   if (level === 'Alta')  return { color: '#34d399', bg: 'rgba(52,211,153,.12)',  label: 'Confianza Alta' }
   if (level === 'Media') return { color: '#fbbf24', bg: 'rgba(251,191,36,.12)',  label: 'Confianza Media' }
@@ -64,6 +79,19 @@ function AccordionSection({ icon, title, open, onToggle, alert, children }: {
   )
 }
 
+function AnalysisText({ text, fallback = 'Sin datos disponibles.' }: { text: string | undefined; fallback?: string }) {
+  if (!text) return (
+    <div style={{ fontSize: 13, color: '#9aa1ab', fontWeight: 500, padding: '10px 14px', background: '#101318', border: '1px solid #232830', borderRadius: 10 }}>
+      {fallback}
+    </div>
+  )
+  return (
+    <div style={{ fontSize: 13, color: '#c4cad2', lineHeight: 1.7, fontWeight: 500, padding: '12px 16px', background: '#101318', border: '1px solid #232830', borderRadius: 10, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+      {text}
+    </div>
+  )
+}
+
 function StatChip({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ background: '#101318', border: '1px solid #232830', borderRadius: 10, padding: '10px 14px', minWidth: 115 }}>
@@ -117,14 +145,16 @@ function DetailPanel({ p }: { p: Prediction }) {
   const [exp, setExp] = useState<Record<string, boolean>>({})
   const tg = (k: string) => setExp(e => ({ ...e, [k]: !e[k] }))
 
+  const ana = p.analisis_completo ?? null
   const winner = getWinner(p)
   const p1x2 = [
     { label: p.equipo1, pct: p.prob_equipo1 ?? 0, isWinner: winner === 'equipo1', color: '#34d399' },
     { label: 'Empate',  pct: p.prob_empate  ?? 0, isWinner: winner === 'empate',  color: '#9aa1ab' },
     { label: p.equipo2, pct: p.prob_equipo2 ?? 0, isWinner: winner === 'equipo2', color: '#f0a868' },
   ]
-  const ouPick  = (p.prob_over25 ?? 0) >= 50 ? 'Over 2.5' : 'Under 2.5'
-  const bttsPick = (p.prob_btts ?? 0) >= 50 ? 'Sí' : 'No'
+  const ouPick   = p.pred_over25 ?? ((p.prob_over25 ?? 0) >= 50 ? 'Over 2.5' : 'Under 2.5')
+  const bttsPick = p.pred_btts   ?? ((p.prob_btts   ?? 0) >= 50 ? 'Sí' : 'No')
+  const hasAlerts = p.tiene_lesiones || p.tiene_suspension || p.hay_noticias_impacto
 
   return (
     <div style={{ background: '#14171c', border: '1px solid #232830', borderRadius: 16, overflow: 'hidden' }}>
@@ -212,37 +242,42 @@ function DetailPanel({ p }: { p: Prediction }) {
         </AccordionSection>
 
         <AccordionSection icon="📊" title="Forma Actual · WC 2026" open={!!exp.form} onToggle={() => tg('form')}>
-          <div style={{ fontSize: 13, color: '#9aa1ab', fontWeight: 500, padding: '10px 14px', background: '#101318', border: '1px solid #232830', borderRadius: 10 }}>
-            {p.corners_avg || p.amarillas_avg || p.tiros_avg
-              ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                  {p.corners_avg   != null && <StatChip label="Corners avg"   value={n(p.corners_avg)} />}
-                  {p.amarillas_avg != null && <StatChip label="Amarillas avg" value={n(p.amarillas_avg)} />}
-                  {p.tiros_avg     != null && <StatChip label="Tiros avg"     value={n(p.tiros_avg)} />}
-                </div>
-              : 'Sin datos de forma disponibles.'
-            }
-          </div>
+          {getSection(ana, 'FORMA ACTUAL', 'WC2026') ? (
+            <AnalysisText text={getSection(ana, 'FORMA ACTUAL', 'WC2026')!} />
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {p.corners_avg   != null && <StatChip label="Corners avg"   value={n(p.corners_avg)} />}
+              {p.amarillas_avg != null && <StatChip label="Amarillas avg" value={n(p.amarillas_avg)} />}
+              {p.tiros_avg     != null && <StatChip label="Tiros avg"     value={n(p.tiros_avg)} />}
+              {!p.corners_avg && !p.amarillas_avg && !p.tiros_avg && (
+                <AnalysisText text={undefined} fallback="Sin datos de forma disponibles." />
+              )}
+            </div>
+          )}
         </AccordionSection>
 
         <AccordionSection icon="📜" title="Histórico · 2018 y 2022" open={!!exp.hist} onToggle={() => tg('hist')}>
-          <div style={{ fontSize: 13, color: '#9aa1ab', fontWeight: 500, padding: '10px 14px', background: '#101318', border: '1px solid #232830', borderRadius: 10 }}>
-            Sin datos históricos disponibles para este partido.
-          </div>
+          <AnalysisText
+            text={getSection(ana, 'HISTÓRICO', 'HISTORICO', '2018') ?? undefined}
+            fallback="Sin datos históricos disponibles para este partido."
+          />
         </AccordionSection>
 
         <AccordionSection icon="⚔️" title="H2H · Mundiales anteriores" open={!!exp.h2h} onToggle={() => tg('h2h')}>
-          <div style={{ fontSize: 13, color: '#9aa1ab', fontWeight: 500, padding: '10px 14px', background: '#101318', border: '1px solid #232830', borderRadius: 10 }}>
-            Sin datos H2H disponibles para este partido.
-          </div>
+          <AnalysisText
+            text={getSection(ana, 'H2H', 'HEAD TO HEAD') ?? undefined}
+            fallback="Sin datos H2H disponibles para este partido."
+          />
         </AccordionSection>
 
         <AccordionSection icon="⭐" title="Jugadores Clave · 2026" open={!!exp.players} onToggle={() => tg('players')}>
-          <div style={{ fontSize: 13, color: '#9aa1ab', fontWeight: 500, padding: '10px 14px', background: '#101318', border: '1px solid #232830', borderRadius: 10 }}>
-            Sin datos de jugadores disponibles.
-          </div>
+          <AnalysisText
+            text={getSection(ana, 'JUGADORES', 'GOLEADORES') ?? undefined}
+            fallback="Sin datos de jugadores disponibles."
+          />
         </AccordionSection>
 
-        {p.cuota1 && (
+        {(p.cuota1 || p.cuota_empate || p.cuota2) && (
           <AccordionSection icon="💰" title="Cuotas de Mercado" open={!!exp.odds} onToggle={() => tg('odds')}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
               {[
@@ -262,38 +297,39 @@ function DetailPanel({ p }: { p: Prediction }) {
           </AccordionSection>
         )}
 
-        <AccordionSection icon="📰" title="Noticias y Alertas" open={!!exp.news} onToggle={() => tg('news')}>
-          <div style={{ display: 'flex', gap: 11, fontSize: 13, color: '#9aa1ab', fontWeight: 500, padding: '12px 14px', background: 'rgba(139,147,160,.07)', border: '1px solid rgba(139,147,160,.2)', borderRadius: 10 }}>
-            Sin alertas relevantes en este momento.
+        <AccordionSection icon="📰" title="Noticias y Alertas" open={!!exp.news} onToggle={() => tg('news')} alert={!!hasAlerts}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {hasAlerts && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                {p.tiene_lesiones       && <span style={{ fontSize: 11.5, fontWeight: 700, color: '#f87171', background: 'rgba(248,113,113,.12)', border: '1px solid rgba(248,113,113,.25)', borderRadius: 20, padding: '3px 10px' }}>🚑 Lesiones</span>}
+                {p.tiene_suspension     && <span style={{ fontSize: 11.5, fontWeight: 700, color: '#fbbf24', background: 'rgba(251,191,36,.12)',  border: '1px solid rgba(251,191,36,.25)',  borderRadius: 20, padding: '3px 10px' }}>🟨 Suspensiones</span>}
+                {p.hay_noticias_impacto && <span style={{ fontSize: 11.5, fontWeight: 700, color: '#f0a868', background: 'rgba(240,168,104,.12)', border: '1px solid rgba(240,168,104,.25)', borderRadius: 20, padding: '3px 10px' }}>📰 Noticias</span>}
+              </div>
+            )}
+            <AnalysisText
+              text={getSection(ana, 'NOTICIAS', 'LESIONES', 'ALERTAS') ?? undefined}
+              fallback="Sin alertas relevantes en este momento."
+            />
           </div>
         </AccordionSection>
 
-        {p.top5_apuestas?.length ? (
-          <AccordionSection icon="🎯" title="Predicciones detalladas" open={!!exp.pred} onToggle={() => tg('pred')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {p.top5_apuestas.map((ap, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#101318', border: '1px solid #232830', borderRadius: 10, padding: '11px 14px' }}>
-                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11.5, fontWeight: 700, color: '#6b727c', width: 18, flexShrink: 0 }}>{i + 1}.</div>
-                  <div style={{ flex: 1, fontSize: 12.5, color: '#9aa1ab', fontFamily: "'IBM Plex Mono',monospace" }}>{ap.mercado} — {ap.probabilidad}%</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#34d399' }}>→ {ap.riesgo}</div>
-                </div>
-              ))}
-            </div>
-          </AccordionSection>
-        ) : (
-          <AccordionSection icon="🎯" title="Predicciones detalladas" open={!!exp.pred} onToggle={() => tg('pred')}>
-            <div style={{ fontSize: 13, color: '#9aa1ab', fontWeight: 500, padding: '10px 14px', background: '#101318', border: '1px solid #232830', borderRadius: 10 }}>
-              Sin predicciones detalladas disponibles.
-            </div>
-          </AccordionSection>
-        )}
+        <AccordionSection icon="🏆" title="Mercados alternativos · TOP 5" open={!!exp.pred} onToggle={() => tg('pred')}>
+          <AnalysisText
+            text={getSection(ana, 'MERCADOS', 'TOP 5', 'ALTERNATIV') ?? undefined}
+            fallback="Sin predicciones detalladas disponibles."
+          />
+        </AccordionSection>
 
-        <AccordionSection icon="💡" title="Conclusión del modelo" open={!!exp.concl} onToggle={() => tg('concl')}>
-          <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#c4cad2', fontWeight: 500, padding: '14px 16px', background: '#101318', border: '1px solid #232830', borderRadius: 12 }}>
-            El modelo XGBoost+Poisson predice {getPickLabel(p)} con {confStyle(p.confianza).label.toLowerCase()}
-            ({getLeadPct(p).toFixed(0)}%). Over 2.5: {n(p.prob_over25, 0)}% · BTTS: {n(p.prob_btts, 0)}%.
-            {p.elo1 && ` Elo ${p.equipo1}: ${p.elo1} vs ${p.equipo2}: ${p.elo2}.`}
-          </div>
+        <AccordionSection icon="🎯" title="Conclusión del modelo" open={!!exp.concl} onToggle={() => tg('concl')}>
+          {getSection(ana, 'CONCLUSIÓN', 'CONCLUSION') ? (
+            <AnalysisText text={getSection(ana, 'CONCLUSIÓN', 'CONCLUSION')!} />
+          ) : (
+            <div style={{ fontSize: 13.5, lineHeight: 1.6, color: '#c4cad2', fontWeight: 500, padding: '14px 16px', background: '#101318', border: '1px solid #232830', borderRadius: 12 }}>
+              El modelo XGBoost+Poisson predice {getPickLabel(p)} con {confStyle(p.confianza).label.toLowerCase()}
+              ({getLeadPct(p).toFixed(0)}%). {ouPick} · BTTS {bttsPick}.
+              {p.elo1 ? ` Elo ${p.equipo1}: ${p.elo1} vs ${p.equipo2}: ${p.elo2}.` : ''}
+            </div>
+          )}
         </AccordionSection>
       </div>
     </div>
