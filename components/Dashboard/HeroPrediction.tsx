@@ -2,80 +2,114 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import type { Prediction } from '@/types'
 
+const n = (v: number | null | undefined, d = 2) => (v ?? 0).toFixed(d)
+
+function TeamAvatar({ name, color }: { name: string; color: string }) {
+  return (
+    <div
+      className="w-24 h-24 rounded-full flex items-center justify-center border border-white/10 shadow-inner text-3xl font-bold uppercase tracking-tight"
+      style={{ background: `linear-gradient(135deg, ${color}22, ${color}08)`, color }}
+    >
+      {name.slice(0, 2)}
+    </div>
+  )
+}
+
 interface HeroPredictionProps {
   prediction: Prediction
 }
 
-export default function HeroPrediction({ prediction }: HeroPredictionProps) {
-  const winProb = Math.max(prediction.prob_equipo1 ?? 0, prediction.prob_empate ?? 0, prediction.prob_equipo2 ?? 0)
-  const data = [
+export default function HeroPrediction({ prediction: p }: HeroPredictionProps) {
+  const winProb = Math.max(p.prob_equipo1 ?? 0, p.prob_empate ?? 0, p.prob_equipo2 ?? 0)
+  const chartData = [
     { name: 'Win', value: winProb },
-    { name: 'Remaining', value: 100 - winProb },
+    { name: 'Rest', value: Math.max(0, 100 - winProb) },
   ]
+
+  // First non-header, non-empty line from analisis_completo as subtitle
+  const analisisFirstLine = p.analisis_completo
+    ?.split('\n')
+    .map(l => l.trim())
+    .filter(l => l && !l.startsWith('📊') && !l.startsWith('→') && l.length > 20)
+    [0] ?? null
+
+  const eloDiff = (p.elo1 ?? 0) - (p.elo2 ?? 0)
+  const hasLambda = p.lambda1 != null && p.lambda2 != null && (p.lambda1 > 0 || p.lambda2 > 0)
+  const hasOdds   = p.cuota1 != null && p.cuota1 > 0
 
   return (
     <section className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-white/40">Prediction of the Week</h2>
-        <span className="px-3 py-1 glass rounded-full text-[10px] border-brand-gold/20 text-brand-gold font-medium uppercase tracking-wider">
-          {prediction.confianza} Confidence
+        <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-white/40">Predicción destacada</h2>
+        <span className={`px-3 py-1 glass rounded-full text-[10px] font-medium uppercase tracking-wider ${
+          p.confianza === 'Alta'  ? 'border-brand-gold/20 text-brand-gold' :
+          p.confianza === 'Media' ? 'border-brand-blue/20 text-brand-blue' :
+                                    'border-white/10 text-white/40'
+        }`}>
+          Confianza {p.confianza}
         </span>
       </div>
-      
-      <div className="glass rounded-[32px] p-10 flex flex-col lg:flex-row gap-12 items-center relative overflow-hidden group">
-        {/* Background Pattern */}
-        <img 
-          src="https://cdn.jsdelivr.net/npm/game-icons-transparent@latest/svgs/delapouite/nested-hexagons.svg" 
-          className="absolute -left-20 -top-20 w-80 h-80 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 pointer-events-none invert"
-          alt=""
-        />
 
+      <div className="glass rounded-[32px] p-10 flex flex-col lg:flex-row gap-12 items-center relative overflow-hidden group">
         <div className="flex-1 space-y-8 relative z-10">
+          {/* Teams */}
           <div className="flex items-center gap-12">
             <div className="text-center space-y-3">
-              <div className="w-24 h-24 glass rounded-full flex items-center justify-center border-white/10 group-hover:border-brand-blue/30 transition-colors shadow-inner">
-                <span className="text-4xl">🏴󠁧󠁢󠁳󠁣󠁴󠁿</span>
-              </div>
-              <h3 className="font-bold text-2xl tracking-tight uppercase">{prediction.equipo1}</h3>
+              <TeamAvatar name={p.equipo1} color="#4f95d6" />
+              <h3 className="font-bold text-2xl tracking-tight uppercase">{p.equipo1}</h3>
             </div>
-            
             <div className="flex flex-col items-center gap-2">
               <span className="text-xs text-white/30 font-mono">VS</span>
               <div className="h-px w-20 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </div>
-
             <div className="text-center space-y-3">
-              <div className="w-24 h-24 glass rounded-full flex items-center justify-center border-white/10 group-hover:border-brand-blue/30 transition-colors shadow-inner">
-                <span className="text-4xl">🇲🇦</span>
-              </div>
-              <h3 className="font-bold text-2xl tracking-tight uppercase">{prediction.equipo2}</h3>
+              <TeamAvatar name={p.equipo2} color="#f0a868" />
+              <h3 className="font-bold text-2xl tracking-tight uppercase">{p.equipo2}</h3>
             </div>
           </div>
 
+          {/* Description */}
           <div className="space-y-4">
             <p className="text-white/60 text-sm leading-relaxed max-w-md">
-              High-confidence model signals advantage for {prediction.resultado_predicho} playing today. 
-              Elo disparity of {( (prediction.elo1 ?? 0) - (prediction.elo2 ?? 0) )} points and recent market shifts indicate significant value.
+              {analisisFirstLine ?? (
+                <>
+                  Predicción: <strong style={{ color: '#4f95d6' }}>{p.resultado_predicho}</strong>.
+                  {eloDiff !== 0 && ` Diferencia Elo: ${Math.abs(eloDiff)} pts.`}
+                </>
+              )}
             </p>
-            <div className="flex gap-4">
+
+            <div className="flex gap-4 flex-wrap">
+              {/* Expected xG — only if lambda values exist */}
+              {hasLambda && (
+                <div className="glass px-4 py-2 rounded-xl">
+                  <p className="text-[10px] text-white/30 uppercase font-bold tracking-wider">Expected xG</p>
+                  <p className="font-mono text-lg">{n(p.lambda1)} <span className="text-white/20 text-xs">vs</span> {n(p.lambda2)}</p>
+                </div>
+              )}
+              {/* Market Odds — only if available */}
+              {hasOdds && (
+                <div className="glass px-4 py-2 rounded-xl">
+                  <p className="text-[10px] text-white/30 uppercase font-bold tracking-wider">Market Odds</p>
+                  <p className="font-mono text-lg text-brand-blue">{n(p.cuota1)}</p>
+                </div>
+              )}
+              {/* Match info */}
               <div className="glass px-4 py-2 rounded-xl">
-                <p className="text-[10px] text-white/30 uppercase font-bold tracking-wider">Expected xG</p>
-                <p className="font-mono text-lg">{prediction.lambda1?.toFixed(2)} <span className="text-white/20 text-xs">vs</span> {prediction.lambda2?.toFixed(2)}</p>
-              </div>
-              <div className="glass px-4 py-2 rounded-xl">
-                <p className="text-[10px] text-white/30 uppercase font-bold tracking-wider">Market Odds</p>
-                <p className="font-mono text-lg text-brand-blue">{prediction.cuota1?.toFixed(2)}</p>
+                <p className="text-[10px] text-white/30 uppercase font-bold tracking-wider">Partido</p>
+                <p className="font-mono text-sm text-white/70">{p.hora} · {p.fecha}</p>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Donut chart */}
         <div className="flex items-center gap-12 relative z-10">
           <div className="relative w-[240px] h-[240px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
+                  data={chartData}
                   cx="50%"
                   cy="50%"
                   innerRadius={85}
@@ -93,14 +127,12 @@ export default function HeroPrediction({ prediction }: HeroPredictionProps) {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-4xl font-bold font-mono tracking-tighter">{winProb.toFixed(0)}<span className="text-xl">%</span></span>
+              <span className="text-4xl font-bold font-mono tracking-tighter">
+                {winProb.toFixed(0)}<span className="text-xl">%</span>
+              </span>
               <span className="text-[10px] text-white/40 tracking-[0.2em] uppercase font-bold">Win Prob</span>
             </div>
           </div>
-          
-          <button className="glass px-8 py-4 rounded-2xl border-brand-blue/40 text-brand-blue font-bold tracking-widest text-xs hover:bg-brand-blue hover:text-white transition-all duration-500 shadow-[0_0_30px_rgba(79,149,214,0.1)] active:scale-95 uppercase">
-            View Analytics
-          </button>
         </div>
       </div>
     </section>

@@ -19,9 +19,11 @@ function impliedProb(odd: unknown): number | null {
   return Math.round((1 / o) * 1000) / 10  // one decimal
 }
 
-// Parse structured data from analisis_completo text as fallback for missing DB fields
-function parseAnalisis(text: string) {
+// Parse structured data from analisis_completo text as fallback for missing DB fields.
+// Accepts equipo1/equipo2 names for team-specific probability matching.
+function parseAnalisis(text: string, equipo1 = '', equipo2 = '') {
   if (!text) return {}
+
   const num = (pattern: RegExp) => {
     const m = text.match(pattern)
     return m ? parseFloat(m[1]) : null
@@ -30,24 +32,38 @@ function parseAnalisis(text: string) {
     const m = text.match(pattern)
     return m ? m[1].trim() : null
   }
+
+  // Extract probability for a team by name: "Brazil gana: 63.6%" or "Brazil: 63.6%"
+  const teamProb = (name: string): number | null => {
+    if (!name) return null
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const m = text.match(new RegExp(esc + '[^\\n%]*?(\\d+\\.?\\d*)%', 'i'))
+    return m ? parseFloat(m[1]) : null
+  }
+
+  // Fallback: find all "gana: X%" occurrences; first=equipo1, last=equipo2
+  const ganaMatches = Array.from(text.matchAll(/gana[:\s]+(\d+\.?\d*)%/gi))
+  const prob1 = teamProb(equipo1) ?? (ganaMatches[0] ? parseFloat(ganaMatches[0][1]) : null)
+  const prob2 = teamProb(equipo2) ?? (ganaMatches.length > 1 ? parseFloat(ganaMatches[ganaMatches.length - 1][1]) : null)
+
   return {
-    prob1:     num(/(?:gana|local)[:\s]+(\d+\.?\d*)%/i),
+    prob1,
     probD:     num(/[Ee]mpate[:\s]+(\d+\.?\d*)%/i),
-    prob2:     num(/(?:visita|gana)[:\s]+.*?(\d+\.?\d*)%.*?(?:gana|visita)/is) ??
-               num(/(\d+\.?\d*)%\s*$/m),
-    probO25:   num(/[Oo]ver\s*2\.5[:\s]+(\d+\.?\d*)%/),
-    probBTTS:  num(/BTTS[:\s]+(?:Si|Sí)\s+(\d+\.?\d*)%/i),
-    lambda1:   num(/equipo1.*?λ[=\s]+(\d+\.?\d*)/i) ?? num(/λ[=\s]+(\d+\.?\d*)/),
-    lambda2:   num(/equipo2.*?λ[=\s]+(\d+\.?\d*)/i) ?? num(/λ.*?λ[=\s]+(\d+\.?\d*)/),
-    elo1:      num(/Elo.*?(\d{4})\s*pts/i),
-    resultado: str(/Resultado:\s*([^\n\-]+)/),
-    confianza: str(/Confianza\s+(Alta|Media|Baja)/i),
+    prob2,
+    probO25:   num(/[Oo]ver\s*2\.5[:\s]+(\d+\.?\d*)%/i),
+    probBTTS:  num(/(?:Si|Sí)[:\s]+(\d+\.?\d*)%/i),
+    resultado: str(/(?:→\s*)?[Rr]esultado[:\s]+([^\n\-,–]+)/),
+    confianza: str(/[Cc]onfianza\s+(Alta|Media|Baja)/),
   }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transform(row: Record<string, any>): Prediction {
-  const parsed = parseAnalisis((row.analisis_completo as string) ?? '')
+  const parsed = parseAnalisis(
+    (row.analisis_completo as string) ?? '',
+    String(row.equipo1 ?? ''),
+    String(row.equipo2 ?? '')
+  )
 
   return {
     // Identity

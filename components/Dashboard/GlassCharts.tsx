@@ -1,10 +1,24 @@
 'use client'
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { AreaChart, Area, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { Activity } from 'lucide-react'
+import type { Prediction } from '@/types'
 
-export function HitRateAccuracy() {
-  // Mock data for the heatmap grid
-  const cells = Array.from({ length: 28 }, (_, i) => Math.random())
+interface ChartProps {
+  predictions: Prediction[]
+}
+
+export function HitRateAccuracy({ predictions }: ChartProps) {
+  // Each cell = one prediction; color by acierto field
+  const cells = predictions.length > 0 ? predictions : []
+  const total    = cells.length
+  const aciertos = cells.filter(p => p.acierto === true).length
+  const pct      = total > 0 ? Math.round((aciertos / total) * 100) : 0
+
+  const cellColor = (p: Prediction) => {
+    if (p.acierto === true)  return 'rgba(52,211,153,0.7)'   // green
+    if (p.acierto === false) return 'rgba(248,113,113,0.4)'  // red
+    return 'rgba(255,255,255,0.07)'                          // pending
+  }
 
   return (
     <div className="glass rounded-[24px] p-8 space-y-6 col-span-1">
@@ -12,73 +26,103 @@ export function HitRateAccuracy() {
         <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">Hit Rate Accuracy</h3>
         <Activity className="text-brand-blue w-4 h-4" />
       </div>
-      <div className="grid grid-cols-7 gap-2">
-        {cells.map((val, i) => (
-          <div 
-            key={i} 
-            className="aspect-square rounded-sm glass transition-opacity hover:opacity-100" 
-            style={{ background: `rgba(79,149,214, ${val * 0.8})`, opacity: 0.6 + (val * 0.4) }}
-          />
-        ))}
-      </div>
-      <div className="flex justify-between text-[10px] text-white/20 uppercase font-bold tracking-widest">
-        <span>Week 01</span>
-        <span>Week 04</span>
-      </div>
+
+      {total === 0 ? (
+        <p className="text-white/20 text-xs text-center py-8">Sin predicciones</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-7 gap-2">
+            {cells.slice(0, 28).map((p, i) => (
+              <div
+                key={p.id + i}
+                className="aspect-square rounded-sm transition-opacity hover:opacity-100"
+                style={{ background: cellColor(p) }}
+                title={`${p.partido}: ${p.acierto === true ? '✓' : p.acierto === false ? '✗' : '?'}`}
+              />
+            ))}
+            {/* Pad to full 28 cells */}
+            {Array.from({ length: Math.max(0, 28 - cells.slice(0, 28).length) }).map((_, i) => (
+              <div key={'pad' + i} className="aspect-square rounded-sm" style={{ background: 'rgba(255,255,255,0.04)' }} />
+            ))}
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] text-white/20 uppercase font-bold tracking-widest">
+              {aciertos}/{total} aciertos
+            </span>
+            <span className="text-[10px] font-mono font-bold" style={{ color: pct >= 60 ? '#34d399' : pct >= 40 ? '#fbbf24' : '#f87171' }}>
+              {pct}%
+            </span>
+          </div>
+        </>
+      )}
     </div>
   )
 }
 
-export function ModelVsMarketAlpha() {
-  const data = [
-    { name: 'Mon', model: 65, market: 60 },
-    { name: 'Tue', model: 78, market: 65 },
-    { name: 'Wed', model: 72, market: 70 },
-    { name: 'Thu', model: 85, market: 75 },
-    { name: 'Fri', model: 82, market: 72 },
-    { name: 'Sat', model: 90, market: 78 },
-    { name: 'Sun', model: 88, market: 80 },
-  ]
+export function ModelVsMarketAlpha({ predictions }: ChartProps) {
+  // Only include matches with market odds (cuota1 != null) and non-zero model prob
+  const data = predictions
+    .filter(p => p.cuota1 != null && (p.prob_equipo1 ?? 0) > 0)
+    .map(p => ({
+      name:   p.fecha?.slice(5) ?? p.hora,
+      model:  Math.round(p.prob_equipo1 ?? 0),
+      market: Math.round(p.prob_impl1 ?? 0),
+    }))
+
+  const hasData = data.length > 0
 
   return (
     <div className="glass rounded-[24px] p-8 space-y-6 col-span-1 lg:col-span-2">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">Model vs Market Alpha</h3>
         <div className="flex gap-4 text-[9px] font-mono uppercase tracking-widest font-bold">
-          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-brand-blue" /> Model</div>
-          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-white/20" /> Market</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-brand-blue" /> Modelo</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-white/20" /> Mercado</div>
         </div>
       </div>
-      <div className="h-48 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id="colorModel" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--brand-blue)" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="var(--brand-blue)" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="name" hide />
-            <YAxis hide domain={['dataMin - 10', 'dataMax + 10']} />
-            <Area 
-              type="monotone" 
-              dataKey="model" 
-              stroke="var(--brand-blue)" 
-              fillOpacity={1} 
-              fill="url(#colorModel)" 
-              strokeWidth={2}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="market" 
-              stroke="rgba(255,255,255,0.2)" 
-              strokeWidth={1} 
-              strokeDasharray="5 5" 
-              dot={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+
+      {!hasData ? (
+        <p className="text-white/20 text-xs text-center py-16">
+          Sin datos con cuotas de mercado disponibles
+        </p>
+      ) : (
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data}>
+              <defs>
+                <linearGradient id="colorModel" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="var(--brand-blue)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--brand-blue)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="name" hide />
+              <YAxis hide domain={[0, 100]} />
+              <Tooltip
+                contentStyle={{ background: '#14171c', border: '1px solid #232830', borderRadius: 10, fontSize: 11 }}
+                labelStyle={{ color: '#9aa1ab' }}
+                formatter={(val: number, key: string) => [`${val}%`, key === 'model' ? 'Modelo' : 'Mercado']}
+              />
+              <Area
+                type="monotone"
+                dataKey="model"
+                stroke="var(--brand-blue)"
+                fillOpacity={1}
+                fill="url(#colorModel)"
+                strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="market"
+                stroke="rgba(255,255,255,0.2)"
+                strokeWidth={1}
+                strokeDasharray="5 5"
+                dot={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   )
 }
