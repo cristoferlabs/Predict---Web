@@ -91,10 +91,10 @@ function transform(row: Record<string, any>): Prediction {
     prob_btts:   (row.pred_prob_btts_si as number) || parsed.probBTTS || 0,
 
     // Mathematical model
-    lambda1: (row.lambda1 as number) ?? parsed.lambda1 ?? 0,
-    lambda2: (row.lambda2 as number) ?? parsed.lambda2 ?? 0,
-    elo1:    (row.elo1 as number)    ?? parsed.elo1    ?? 0,
-    elo2:    Number(row.elo2 ?? 0) || 0,
+    lambda1: Number(row.lambda1 ?? 0) || 0,
+    lambda2: Number(row.lambda2 ?? 0) || 0,
+    elo1:    Number(row.elo1    ?? 0) || 0,
+    elo2:    Number(row.elo2    ?? 0) || 0,
 
     // Market odds — DB cols: odd_local, odd_empate, odd_visita
     cuota1:       maybeNum(row.odd_local),
