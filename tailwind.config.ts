@@ -10,45 +10,19 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          blue:   '#4f95d6',
-          green:  '#34d399',
-          yellow: '#fbbf24',
-          orange: '#f0a868',
-          red:    '#f87171',
-          gray:   '#8b93a0',
-          gold:   '#fbbf24',
+          blue: '#4f95d6',
+          gold: '#fbbf24',
         },
         surface: {
-          900: '#0a0c0f',  // main bg
-          800: '#0d1015',  // alt bg
-          700: '#14171c',  // card bg
-          600: '#101318',  // card deep
-          500: '#232830',  // border strong
-          400: '#1c2127',  // border light
-        },
-        terminal: {
-          blue: '#3aa0ff',
-          green: '#34d399',
-          yellow: '#fbbf24',
-          red: '#f87171',
-          text: {
-            primary: '#f3f5f7',
-            secondary: '#94a3b8',
-          }
+          900: '#0d1015',
         }
       },
       fontFamily: {
-        sans: ['Public Sans', 'system-ui', 'sans-serif'],
-        mono: ['IBM Plex Mono', 'monospace'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['Fira Code', 'monospace'],
       },
-      animation: {
-        'ticker': 'ticker 30s linear infinite',
-      },
-      keyframes: {
-        ticker: {
-          '0%': { transform: 'translateX(0)' },
-          '100%': { transform: 'translateX(-50%)' },
-        }
+      backgroundImage: {
+        'noise-texture': "url('https://images.unsplash.com/photo-1602475063211-3d98d60e3b1f?auto=format&w=1440&q=20&fit=crop')",
       }
     },
   },

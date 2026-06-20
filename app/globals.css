@@ -3,93 +3,55 @@
 @tailwind utilities;
 
 :root {
-  --bg-main: #0a0c0f;
-  --bg-card: #14171c;
-  --bg-alt: #0d1015;
-  --border: #232830;
-  --accent-blue: #3aa0ff;
-  --accent-green: #34d399;
-  --accent-yellow: #fbbf24;
-  --accent-red: #f87171;
-  --text-primary: #f3f5f7;
-  --text-secondary: #94a3b8;
-
-  /* Legacy aliases for compatibility */
-  --bg:          #0a0c0f;
-  --sidebar:     #0d1015;
-  --card:        #14171c;
-  --card-deep:   #101318;
-  --border-light: #1c2127;
-  --border-strong: #232830;
-  --text-1:      #f3f5f7;
-  --text-2:      #e8eaed;
-  --text-3:      #dfe3e8;
-  --text-muted:  #9aa1ab;
-  --text-dim:    #7c8492;
-  --text-faint:  #6b727c;
-  --blue:        #4f95d6;
-  --blue-bright: #3aa0ff;
-  --blue-dark:   #1170c4;
-  --green:       #34d399;
-  --yellow:      #fbbf24;
-  --orange:      #f0a868;
-  --red:         #f87171;
-  --gray-conf:   #8b93a0;
+  --brand-blue: #4f95d6;
+  --brand-gold: #fbbf24;
+  --glass-bg: rgba(20, 23, 28, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 body {
-  background-color: var(--bg-main);
-  color: var(--text-primary);
-  font-family: 'Public Sans', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  @apply bg-surface-900 text-[#f3f5f7] font-sans antialiased overflow-x-hidden;
+  margin: 0;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-main); }
-::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+@layer components {
+  .glass {
+    @apply bg-[var(--glass-bg)] border border-[var(--glass-border)];
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
 
-input[type=date] { color-scheme: dark; }
-select option { background: var(--bg-card); color: var(--text-primary); }
+  .glass-hover {
+    @apply transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)];
+  }
 
-/* Isometric Grid Background */
-.isometric-grid {
-  background-image: 
-    linear-gradient(30deg, #1c2127 12%, transparent 12.5%, transparent 87%, #1c2127 87.5%, #1c2127),
-    linear-gradient(150deg, #1c2127 12%, transparent 12.5%, transparent 87%, #1c2127 87.5%, #1c2127),
-    linear-gradient(30deg, #1c2127 12%, transparent 12.5%, transparent 87%, #1c2127 87.5%, #1c2127),
-    linear-gradient(150deg, #1c2127 12%, transparent 12.5%, transparent 87%, #1c2127 87.5%, #1c2127),
-    linear-gradient(60deg, #232830 25%, transparent 25.5%, transparent 75%, #232830 75%, #232830),
-    linear-gradient(60deg, #232830 25%, transparent 25.5%, transparent 75%, #232830 75%, #232830);
-  background-size: 80px 140px;
-  background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
-  opacity: 0.03;
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 0;
+  .glass-hover:hover {
+    @apply bg-white/[0.08] border-white/20 -translate-y-1;
+  }
+
+  .ambient-glow {
+    @apply fixed w-[600px] h-[600px] rounded-full pointer-events-none -z-10 blur-[80px];
+    background: radial-gradient(circle, rgba(79, 149, 214, 0.15) 0%, rgba(79, 149, 214, 0) 70%);
+  }
+
+  .noise-overlay {
+    @apply fixed inset-0 pointer-events-none z-[100] opacity-[0.03] bg-noise-texture;
+  }
+
+  .carousel-hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .carousel-hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-/* Terminal Glow Effects */
-.glow-blue { text-shadow: 0 0 8px rgba(58, 160, 255, 0.6); }
-.glow-green { text-shadow: 0 0 8px rgba(52, 211, 153, 0.6); }
-.glow-yellow { text-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
+/* Custom styles from design */
+.font-mono-ui { font-family: 'Fira Code', monospace; }
 
-.border-glow-blue {
-  box-shadow: 0 0 15px rgba(58, 160, 255, 0.2);
-  border-color: var(--accent-blue) !important;
-}
-
-/* Confidence badges */
-.badge-alta  { box-shadow: 0 0 10px rgba(52, 211, 153, 0.30); }
-.badge-media { box-shadow: 0 0 10px rgba(251, 191,  36, 0.28); }
-.badge-baja  { box-shadow: 0 0 10px rgba(139, 147, 160, 0.22); }
-
-/* Probability bar animation */
-@keyframes fillBar {
-  from { width: 0%; }
-  to   { width: var(--target-width); }
-}
-.prob-bar { animation: fillBar 0.8s ease-out forwards; }
-
-.font-mono-ui { font-family: 'IBM Plex Mono', monospace; }
+/* Custom Scrollbar for better integration */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
