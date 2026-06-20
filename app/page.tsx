@@ -1,12 +1,13 @@
 export const dynamic = 'force-dynamic'
 
-import { getTodayPredictions, getPredictions, getUpcomingPredictions, getPredictionsWithOdds } from '@/lib/supabase'
 import PredictorView from '@/components/PredictorView'
 import type { Prediction } from '@/types'
 
+const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+
 const DEMO: Prediction[] = [
   {
-    id: 'demo-1', created_at: new Date().toISOString(),
+    id: 'demo-1',
     partido: 'Scotland vs Morocco', fecha: '2026-06-19', hora: '18:00',
     ronda: 'Matchday 9', grupo: 'C', equipo1: 'Scotland', equipo2: 'Morocco',
     prob_equipo1: 34.9, prob_empate: 34.5, prob_equipo2: 30.6,
@@ -16,29 +17,33 @@ const DEMO: Prediction[] = [
     prob_impl1: 18.6, prob_impl_empate: 27.8, prob_impl2: 57.8,
     resultado_real: null, goles_equipo1: null, goles_equipo2: null, acierto: null,
     corners_avg: 5.2, amarillas_avg: 3.1, tiros_avg: 11.4,
-    top5_apuestas: null,
     pred_over25: 'Under 2.5', pred_btts: 'No',
-    analisis_completo: null, tiene_lesiones: null, tiene_suspension: null, hay_noticias_impacto: null,
+    secciones: { forma: null, historico: null, h2h: null, jugadores: null, noticias: null, mercados: null, conclusion: null, completo: null },
   },
 ]
 
+async function fetchJSON(url: string): Promise<Prediction[]> {
+  try {
+    const res = await fetch(url, { cache: 'no-store' })
+    if (!res.ok) return []
+    const data = await res.json()
+    return Array.isArray(data) ? data : []
+  } catch {
+    return []
+  }
+}
+
 async function fetchAll() {
-  const [today, upcoming, withOdds] = await Promise.all([
-    getTodayPredictions().catch(() => [] as Prediction[]),
-    getUpcomingPredictions().catch(() => [] as Prediction[]),
-    getPredictionsWithOdds().catch(() => [] as Prediction[]),
+  const today = new Date().toISOString().split('T')[0]
+
+  const [todayPreds, upcoming, withOdds] = await Promise.all([
+    fetchJSON(`${BASE}/api/predictions?fecha=${today}`),
+    fetchJSON(`${BASE}/api/predictions?upcoming=true`),
+    fetchJSON(`${BASE}/api/predictions?withOdds=true`),
   ])
 
-  // Today's predictions for hero/hit-rate/alt-markets
-  let predictions = today
-  if (!predictions.length) {
-    predictions = await getPredictions().catch(() => [])
-    predictions = predictions.slice(0, 10)
-  }
-  if (!predictions.length) predictions = DEMO
-
-  // Upcoming for carousel — fall back to today's if empty
-  const upcomingFinal = upcoming.length ? upcoming : predictions
+  const predictions = todayPreds.length > 0 ? todayPreds : (upcoming.length > 0 ? upcoming.slice(0, 10) : DEMO)
+  const upcomingFinal = upcoming.length > 0 ? upcoming : predictions
 
   return { predictions, upcoming: upcomingFinal, withOdds }
 }

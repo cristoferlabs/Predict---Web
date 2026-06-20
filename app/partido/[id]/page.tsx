@@ -1,7 +1,8 @@
 export const dynamic = 'force-dynamic'
 
-import { getPredictionById } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
+
+const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 import { ModelVsMarketChart, TeamRadarChart, AlternativeMarketsChart } from '@/components/MatchCharts'
 import ExportButton from '@/components/ExportButton'
 
@@ -38,7 +39,10 @@ function StatChip({ label, value }: { label: string; value: string }) {
 
 export default async function PartidoPage({ params }: { params: { id: string } }) {
   let prediction = null
-  try { prediction = await getPredictionById(params.id) } catch {}
+  try {
+    const res = await fetch(`${BASE}/api/predictions/${params.id}`, { cache: 'no-store' })
+    if (res.ok) prediction = await res.json()
+  } catch {}
   if (!prediction) notFound()
   const p = prediction
 
@@ -180,11 +184,11 @@ export default async function PartidoPage({ params }: { params: { id: string } }
             </div>
           </Accordion>
 
-          {p.top5_apuestas?.length ? (
-            <Accordion icon="🏆" title="Top 5 Apuestas recomendadas">
+          {p.secciones?.mercados && (
+            <Accordion icon="💹" title="Cuotas y Mercados">
               <AlternativeMarketsChart p={p} />
             </Accordion>
-          ) : null}
+          )}
 
           {p.cuota1 && (
             <Accordion icon="💰" title="Cuotas de Mercado">

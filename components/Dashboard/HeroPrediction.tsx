@@ -26,8 +26,8 @@ export default function HeroPrediction({ prediction: p }: HeroPredictionProps) {
     { name: 'Rest', value: Math.max(0, 100 - winProb) },
   ]
 
-  // First non-header, non-empty line from analisis_completo as subtitle
-  const analisisFirstLine = p.analisis_completo
+  // First non-header, non-empty line from analysis text as subtitle
+  const analisisFirstLine = p.secciones.completo
     ?.split('\n')
     .map(l => l.trim())
     .filter(l => l && !l.startsWith('📊') && !l.startsWith('→') && l.length > 20)

@@ -76,37 +76,17 @@ export function TeamRadarChart({ p }: { p: Prediction }) {
 }
 
 export function AlternativeMarketsChart({ p }: { p: Prediction }) {
-  if (!p.top5_apuestas?.length) return null
-
-  const riskColor = (r: string) =>
-    r === 'Bajo' ? C_GREEN : r === 'Medio' ? C_YELLOW : '#f87171'
+  const text = p.secciones?.mercados
+  if (!text) return null
 
   return (
     <div style={{ background: '#14171c', border: '1px solid #232830', borderRadius: 16, padding: '18px 20px' }}>
       <h3 style={{ fontSize: 11, fontWeight: 700, color: '#6b727c', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 16 }}>
-        🏆 Top 5 Apuestas
+        💹 Cuotas y Mercados
       </h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {p.top5_apuestas.map((ap, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, fontWeight: 600, color: '#fbbf24', width: 18, flexShrink: 0 }}>{i + 1}.</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: '#dfe3e8' }}>{ap.mercado}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, fontWeight: 600, color: '#f3f5f7' }}>{ap.probabilidad}%</span>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: riskColor(ap.riesgo) + '22', color: riskColor(ap.riesgo) }}>
-                    {ap.riesgo}
-                  </span>
-                </div>
-              </div>
-              <div style={{ height: 5, background: '#1c2127', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: 4, width: `${ap.probabilidad}%`, background: riskColor(ap.riesgo), transition: 'width .7s ease' }} />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <pre style={{ fontFamily: 'inherit', whiteSpace: 'pre-wrap', fontSize: 12.5, color: '#9aa1ab', lineHeight: 1.7, margin: 0 }}>
+        {text}
+      </pre>
     </div>
   )
 }

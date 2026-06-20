@@ -1,13 +1,15 @@
-import { getPredictions } from '@/lib/supabase'
+export const dynamic = 'force-dynamic'
+
 import type { Prediction } from '@/types'
 import clsx from 'clsx'
 
-export const revalidate = 300
+const BASE = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
 async function fetchHistory(): Promise<Prediction[]> {
   try {
-    const all = await getPredictions()
-    return all.filter((p) => p.resultado_real !== null)
+    const res = await fetch(`${BASE}/api/predictions?played=true`, { cache: 'no-store' })
+    if (!res.ok) return []
+    return res.json()
   } catch {
     return []
   }
