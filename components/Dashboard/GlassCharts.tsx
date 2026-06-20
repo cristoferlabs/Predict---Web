@@ -60,16 +60,14 @@ export function HitRateAccuracy({ predictions }: ChartProps) {
 }
 
 export function ModelVsMarketAlpha({ predictions }: ChartProps) {
-  // Only include matches with market odds (cuota1 != null) and non-zero model prob
   const data = predictions
     .filter(p => p.cuota1 != null && (p.prob_equipo1 ?? 0) > 0)
     .map(p => ({
-      name:   p.fecha?.slice(5) ?? p.hora,
-      model:  Math.round(p.prob_equipo1 ?? 0),
-      market: Math.round(p.prob_impl1 ?? 0),
+      fecha:   p.fecha?.slice(5) ?? p.hora,
+      modelo:  +(p.prob_equipo1 ?? 0).toFixed(1),
+      mercado: +(p.prob_impl1   ?? 0).toFixed(1),
+      partido: p.partido,
     }))
-
-  const hasData = data.length > 0
 
   return (
     <div className="glass rounded-[24px] p-8 space-y-6 col-span-1 lg:col-span-2">
@@ -81,39 +79,39 @@ export function ModelVsMarketAlpha({ predictions }: ChartProps) {
         </div>
       </div>
 
-      {!hasData ? (
+      {data.length < 2 ? (
         <p className="text-white/20 text-xs text-center py-16">
-          Sin datos con cuotas de mercado disponibles
+          Sin suficientes datos para el gráfico
         </p>
       ) : (
         <div className="h-48 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data}>
               <defs>
-                <linearGradient id="colorModel" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="colorModelo" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor="var(--brand-blue)" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="var(--brand-blue)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="name" hide />
+              <XAxis dataKey="fecha" hide />
               <YAxis hide domain={[0, 100]} />
               <Tooltip
                 contentStyle={{ background: '#14171c', border: '1px solid #232830', borderRadius: 10, fontSize: 11 }}
                 labelStyle={{ color: '#9aa1ab' }}
-                formatter={(val: number, key: string) => [`${val}%`, key === 'model' ? 'Modelo' : 'Mercado']}
+                formatter={(val: number, key: string) => [`${val}%`, key === 'modelo' ? 'Modelo' : 'Mercado']}
               />
               <Area
                 type="monotone"
-                dataKey="model"
+                dataKey="modelo"
                 stroke="var(--brand-blue)"
                 fillOpacity={1}
-                fill="url(#colorModel)"
+                fill="url(#colorModelo)"
                 strokeWidth={2}
                 dot={false}
               />
               <Line
                 type="monotone"
-                dataKey="market"
+                dataKey="mercado"
                 stroke="rgba(255,255,255,0.2)"
                 strokeWidth={1}
                 strokeDasharray="5 5"

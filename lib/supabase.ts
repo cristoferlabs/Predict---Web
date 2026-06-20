@@ -19,51 +19,31 @@ function impliedProb(odd: unknown): number | null {
   return Math.round((1 / o) * 1000) / 10  // one decimal
 }
 
-// Parse structured data from analisis_completo text as fallback for missing DB fields.
-// Accepts equipo1/equipo2 names for team-specific probability matching.
-function parseAnalisis(text: string, equipo1 = '', equipo2 = '') {
-  if (!text) return {}
-
-  const num = (pattern: RegExp) => {
-    const m = text.match(pattern)
-    return m ? parseFloat(m[1]) : null
-  }
-  const str = (pattern: RegExp) => {
-    const m = text.match(pattern)
-    return m ? m[1].trim() : null
-  }
-
-  // Extract probability for a team by name: "Brazil gana: 63.6%" or "Brazil: 63.6%"
-  const teamProb = (name: string): number | null => {
-    if (!name) return null
-    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const m = text.match(new RegExp(esc + '[^\\n%]*?(\\d+\\.?\\d*)%', 'i'))
-    return m ? parseFloat(m[1]) : null
-  }
-
-  // Fallback: find all "gana: X%" occurrences; first=equipo1, last=equipo2
-  const ganaMatches = Array.from(text.matchAll(/gana[:\s]+(\d+\.?\d*)%/gi))
-  const prob1 = teamProb(equipo1) ?? (ganaMatches[0] ? parseFloat(ganaMatches[0][1]) : null)
-  const prob2 = teamProb(equipo2) ?? (ganaMatches.length > 1 ? parseFloat(ganaMatches[ganaMatches.length - 1][1]) : null)
-
-  return {
-    prob1,
-    probD:     num(/[Ee]mpate[:\s]+(\d+\.?\d*)%/i),
-    prob2,
-    probO25:   num(/[Oo]ver\s*2\.5[:\s]+(\d+\.?\d*)%/i),
-    probBTTS:  num(/(?:Si|Sí)[:\s]+(\d+\.?\d*)%/i),
-    resultado: str(/(?:→\s*)?[Rr]esultado[:\s]+([^\n\-,–]+)/),
-    confianza: str(/[Cc]onfianza\s+(Alta|Media|Baja)/),
-  }
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transform(row: Record<string, any>): Prediction {
-  const parsed = parseAnalisis(
-    (row.analisis_completo as string) ?? '',
-    String(row.equipo1 ?? ''),
-    String(row.equipo2 ?? '')
-  )
+  // Inline text parser for analisis_completo fallback
+  const txt = (row.analisis_completo as string) || ''
+  const pct = (re: RegExp) => { const m = txt.match(re); return m ? +m[1] : 0 }
+
+  const rawP1 = (row.prob_local  as number) || 0
+  const rawPD = (row.prob_empate as number) || 0
+  const rawP2 = (row.prob_visita as number) || 0
+
+  // If DB fields are > 1 they are already percentages; otherwise parse from text
+  const prob1 = rawP1 > 1 ? rawP1 : pct(/(\d+\.?\d*)\s*%.*?(?:gana|local)/i) || pct(/local[:\s]+(\d+\.?\d*)%/i)
+  const probD = rawPD > 1 ? rawPD : pct(/[Ee]mpate[:\s]+(\d+\.?\d*)%/)
+  const prob2 = rawP2 > 1 ? rawP2 : pct(/(?:visita|gana)[^%]*?(\d+\.?\d*)\s*%(?!.*gana)/i)
+  const probO = pct(/[Oo]ver\s*2\.5[:\s]+(\d+\.?\d*)%/) || (row.pred_prob_over25 as number) || 0
+  const probB = pct(/BTTS[:\s]+(?:Si|Sí)\s+(\d+\.?\d*)%/i) || (row.pred_prob_btts_si as number) || 0
+
+  const txtResultado = txt.match(/Resultado:\s*([^\n\-–]+)/)?.[1]?.trim() || ''
+  const txtConfianza = txt.match(/Confianza\s+(Alta|Media|Baja)/i)?.[1] || ''
+
+  // Use pred_1x2 unless it wrongly says "Empate" when model clearly favors equipo1
+  const dbResultado = (row.pred_1x2 as string) || ''
+  const resultado_predicho = dbResultado && !(dbResultado === 'Empate' && prob1 > probD)
+    ? dbResultado
+    : txtResultado || dbResultado
 
   return {
     // Identity
@@ -77,18 +57,15 @@ function transform(row: Record<string, any>): Prediction {
     equipo1:    String(row.equipo1 ?? ''),
     equipo2:    String(row.equipo2 ?? ''),
 
-    // Model probabilities — fallback to parsed text if DB fields are 0/null
-    prob_equipo1: (row.prob_local  as number) || parsed.prob1  || 0,
-    prob_empate:  (row.prob_empate as number) || parsed.probD  || 0,
-    prob_equipo2: (row.prob_visita as number) || parsed.prob2  || 0,
+    prob_equipo1: prob1,
+    prob_empate:  probD,
+    prob_equipo2: prob2,
 
-    // IA prediction — fallback to parsed text
-    resultado_predicho: (row.pred_1x2 as string) || parsed.resultado || '',
-    confianza: ((row.pred_1x2_confianza as string) || parsed.confianza || 'Baja') as 'Alta' | 'Media' | 'Baja',
+    resultado_predicho,
+    confianza: ((row.pred_1x2_confianza as string) || txtConfianza || 'Baja') as 'Alta' | 'Media' | 'Baja',
 
-    // Over/BTTS probabilities (fallback from analisis text)
-    prob_over25: (row.pred_prob_over25 as number) || parsed.probO25 || 0,
-    prob_btts:   (row.pred_prob_btts_si as number) || parsed.probBTTS || 0,
+    prob_over25: probO,
+    prob_btts:   probB,
 
     // Mathematical model
     lambda1: Number(row.lambda1 ?? 0) || 0,
@@ -159,6 +136,32 @@ export async function getPredictionById(id: string): Promise<Prediction | null> 
 export async function getTodayPredictions(): Promise<Prediction[]> {
   const today = new Date().toISOString().split('T')[0]
   return getPredictions(today)
+}
+
+// Returns today + next 7 days, ordered by fecha+hora (for fixture carousel)
+export async function getUpcomingPredictions(): Promise<Prediction[]> {
+  const today = new Date().toISOString().split('T')[0]
+  const { data, error } = await supabase
+    .from('predicciones')
+    .select('*')
+    .gte('fecha', today)
+    .order('fecha', { ascending: true })
+    .order('hora',  { ascending: true })
+    .limit(20)
+  if (error) return []
+  return (data ?? []).map(transform)
+}
+
+// Returns all predictions that have market odds (for Model vs Market chart)
+export async function getPredictionsWithOdds(): Promise<Prediction[]> {
+  const { data, error } = await supabase
+    .from('predicciones')
+    .select('*')
+    .not('odd_local', 'is', null)
+    .order('fecha', { ascending: true })
+    .limit(50)
+  if (error) return []
+  return (data ?? []).map(transform)
 }
 
 export async function getAccuracyStats() {

@@ -8,11 +8,13 @@ import { HitRateAccuracy, ModelVsMarketAlpha } from './Dashboard/GlassCharts'
 import AlternativeMarkets from './Dashboard/AlternativeMarkets'
 
 interface Props {
-  predictions: Prediction[]
+  predictions: Prediction[]          // today — hero, hit-rate, alt-markets
+  upcomingPredictions: Prediction[]  // next 7 days — fixture carousel
+  predictionsWithOdds: Prediction[]  // all with odds — Model vs Market chart
   dateDefault: string
 }
 
-export default function PredictorView({ predictions }: Props) {
+export default function PredictorView({ predictions, upcomingPredictions, predictionsWithOdds }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
 
   const sortedByConfidence = useMemo(() => {
@@ -91,9 +93,16 @@ export default function PredictorView({ predictions }: Props) {
             />
           )}
 
-          {/* Fixture carousel — full list, not filtered */}
+          {/* Fixture carousel — upcoming 7 days, filtered by search */}
           <FixtureCarousel
-            predictions={filteredPredictions}
+            predictions={
+              searchQuery.trim()
+                ? upcomingPredictions.filter(p => {
+                    const q = searchQuery.toLowerCase()
+                    return p.equipo1.toLowerCase().includes(q) || p.equipo2.toLowerCase().includes(q)
+                  })
+                : upcomingPredictions
+            }
             selectedId={selectedId}
             onSelect={setSelectedId}
           />
@@ -101,7 +110,7 @@ export default function PredictorView({ predictions }: Props) {
           {/* Charts + Markets grid */}
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <HitRateAccuracy predictions={predictions} />
-            <ModelVsMarketAlpha predictions={predictions} />
+            <ModelVsMarketAlpha predictions={predictionsWithOdds} />
             <AlternativeMarkets prediction={selectedMatch} />
           </section>
         </div>
