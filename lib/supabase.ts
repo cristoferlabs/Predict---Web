@@ -21,29 +21,34 @@ function impliedProb(odd: unknown): number | null {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transform(row: Record<string, any>): Prediction {
-  // Inline text parser for analisis_completo fallback
+  // DB stores prob_local/empate/visita as 0-1 decimals → convert to percentages
+  const p1 = +((row.prob_local  as number ?? 0) * 100).toFixed(1)
+  const pd = +((row.prob_empate as number ?? 0) * 100).toFixed(1)
+  const p2 = +((row.prob_visita as number ?? 0) * 100).toFixed(1)
+
+  // Fallback: parse percentages from analisis_completo text when DB fields are 0
   const txt = (row.analisis_completo as string) || ''
   const pct = (re: RegExp) => { const m = txt.match(re); return m ? +m[1] : 0 }
-
-  const rawP1 = (row.prob_local  as number) || 0
-  const rawPD = (row.prob_empate as number) || 0
-  const rawP2 = (row.prob_visita as number) || 0
-
-  // If DB fields are > 1 they are already percentages; otherwise parse from text
-  const prob1 = rawP1 > 1 ? rawP1 : pct(/(\d+\.?\d*)\s*%.*?(?:gana|local)/i) || pct(/local[:\s]+(\d+\.?\d*)%/i)
-  const probD = rawPD > 1 ? rawPD : pct(/[Ee]mpate[:\s]+(\d+\.?\d*)%/)
-  const prob2 = rawP2 > 1 ? rawP2 : pct(/(?:visita|gana)[^%]*?(\d+\.?\d*)\s*%(?!.*gana)/i)
+  const prob1 = p1 > 0 ? p1 : pct(/(\d+\.?\d*)\s*%.*?(?:gana|local)/i) || pct(/local[:\s]+(\d+\.?\d*)%/i)
+  const probD = pd > 0 ? pd : pct(/[Ee]mpate[:\s]+(\d+\.?\d*)%/)
+  const prob2 = p2 > 0 ? p2 : pct(/(?:visita|gana)[^%]*?(\d+\.?\d*)\s*%(?!.*gana)/i)
   const probO = pct(/[Oo]ver\s*2\.5[:\s]+(\d+\.?\d*)%/) || (row.pred_prob_over25 as number) || 0
   const probB = pct(/BTTS[:\s]+(?:Si|Sí)\s+(\d+\.?\d*)%/i) || (row.pred_prob_btts_si as number) || 0
 
-  const txtResultado = txt.match(/Resultado:\s*([^\n\-–]+)/)?.[1]?.trim() || ''
-  const txtConfianza = txt.match(/Confianza\s+(Alta|Media|Baja)/i)?.[1] || ''
+  // pred_1x2 stores "equipo1"/"equipo2"/"empate" — map to real team names
+  const raw1x2 = (row.pred_1x2 as string) ?? ''
+  const raw1x2Mapped =
+    raw1x2 === 'equipo1' ? String(row.equipo1 ?? '') :
+    raw1x2 === 'equipo2' ? String(row.equipo2 ?? '') :
+    raw1x2 === 'empate'  ? 'Empate' :
+    raw1x2
 
-  // Use pred_1x2 unless it wrongly says "Empate" when model clearly favors equipo1
-  const dbResultado = (row.pred_1x2 as string) || ''
-  const resultado_predicho = dbResultado && !(dbResultado === 'Empate' && prob1 > probD)
-    ? dbResultado
-    : txtResultado || dbResultado
+  // Compute winner from probabilities (most reliable source)
+  const resultado_predicho =
+    prob1 > pd && prob1 > prob2 ? String(row.equipo1 ?? '') :
+    prob2 > pd && prob2 > prob1 ? String(row.equipo2 ?? '') :
+    prob1 > 0 || pd > 0 || prob2 > 0 ? 'Empate' :
+    raw1x2Mapped  // last resort: use the mapped pred_1x2 field
 
   return {
     // Identity
@@ -62,16 +67,16 @@ function transform(row: Record<string, any>): Prediction {
     prob_equipo2: prob2,
 
     resultado_predicho,
-    confianza: ((row.pred_1x2_confianza as string) || txtConfianza || 'Baja') as 'Alta' | 'Media' | 'Baja',
+    confianza: (row.pred_1x2_confianza as 'Alta' | 'Media' | 'Baja') ?? 'Baja',
 
     prob_over25: probO,
     prob_btts:   probB,
 
-    // Mathematical model
-    lambda1: Number(row.lambda1 ?? 0) || 0,
-    lambda2: Number(row.lambda2 ?? 0) || 0,
-    elo1:    Number(row.elo1    ?? 0) || 0,
-    elo2:    Number(row.elo2    ?? 0) || 0,
+    // Mathematical model — may be null before SQL migration runs
+    lambda1: (row.lambda1 as number | null) ?? null,
+    lambda2: (row.lambda2 as number | null) ?? null,
+    elo1:    (row.elo1    as number | null) ?? null,
+    elo2:    (row.elo2    as number | null) ?? null,
 
     // Market odds — DB cols: odd_local, odd_empate, odd_visita
     cuota1:       maybeNum(row.odd_local),

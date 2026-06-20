@@ -15,10 +15,10 @@ export interface Prediction {
   confianza: 'Alta' | 'Media' | 'Baja'
   prob_over25: number
   prob_btts: number
-  lambda1: number
-  lambda2: number
-  elo1: number
-  elo2: number
+  lambda1: number | null
+  lambda2: number | null
+  elo1: number | null
+  elo2: number | null
   // mercado
   cuota1: number | null
   cuota_empate: number | null
