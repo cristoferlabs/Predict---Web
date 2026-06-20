@@ -1,20 +1,21 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Sidebar from '@/components/Sidebar'
+import Navbar from '@/components/Navbar'
+import Ticker from '@/components/Ticker'
 
 export const metadata: Metadata = {
-  title: 'PitchIQ · Predict WC 2026',
-  description: 'Predicciones del Mundial 2026 con IA, modelo Poisson+Elo y XGBoost',
+  title: 'PitchIQ · Match Predictor Terminal',
+  description: 'Sistema de predicciones de fútbol avanzado con modelos matemáticos',
   openGraph: {
-    title: 'PitchIQ · Predict WC 2026',
-    description: 'Predicciones inteligentes para el Mundial 2026',
+    title: 'PitchIQ · Match Predictor Terminal',
+    description: 'Predicciones inteligentes para fútbol profesional',
     type: 'website',
   },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es">
+    <html lang="es" className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -23,9 +24,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body style={{ display: 'flex', minHeight: '100vh', minWidth: 1100 }}>
-        <Sidebar />
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <body className="bg-terminal-bg text-terminal-text-primary min-h-screen relative overflow-x-hidden">
+        <div className="isometric-grid" />
+        
+        <Ticker />
+        <Navbar />
+        
+        <div className="relative z-10 flex flex-col min-h-screen">
           {children}
         </div>
       </body>

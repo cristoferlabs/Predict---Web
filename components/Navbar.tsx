@@ -1,90 +1,62 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Search, BarChart3, LayoutDashboard, Database, Globe } from 'lucide-react'
 
-const links = [
-  { href: '/',             label: 'Predicciones' },
-  { href: '/tracker',      label: 'Backtesting' },
-  { href: '/analytics',    label: 'Analytics' },
-  { href: '/como-funciona', label: 'Modelos' },
+const NAV_LINKS = [
+  { href: '/',             label: 'Predictions', icon: LayoutDashboard },
+  { href: '/analytics',    label: 'Analytics',   icon: BarChart3 },
+  { href: '/como-funciona', label: 'Models',      icon: Database },
+  { href: '/leagues',      label: 'Leagues',     icon: Globe },
 ]
 
 export default function Navbar() {
   const path = usePathname()
+
   return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50"
-      style={{ background: 'rgba(13,16,21,.90)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #1c2127' }}
-    >
-      <div className="max-w-7xl mx-auto px-6 flex items-center h-16 gap-6">
-
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 mr-2 shrink-0">
-          <div style={{
-            width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-            background: 'linear-gradient(135deg,#3aa0ff,#1170c4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 800, color: '#fff', fontSize: 17,
-          }}>P</div>
-          <div style={{ lineHeight: 1.25 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#fff', letterSpacing: '-.2px' }}>PitchIQ</div>
-            <div style={{ fontSize: 11, color: '#5b636e', fontWeight: 500 }}>Prediction Agent</div>
+    <nav className="bg-terminal-bg border-b border-terminal-border px-6 py-3 flex items-center justify-between sticky top-8 z-40 backdrop-blur-md bg-opacity-90">
+      <div className="flex items-center space-x-8">
+        <Link href="/" className="flex items-center space-x-3 group">
+          <div className="w-8 h-8 bg-gradient-to-br from-terminal-blue to-blue-700 flex items-center justify-center rounded-sm">
+            <BarChart3 className="text-white w-5 h-5" />
           </div>
+          <span className="text-xl font-bold tracking-tight glow-blue uppercase">
+            Match<span className="font-light text-terminal-blue">Predictor</span>
+          </span>
         </Link>
-
-        {/* Nav links */}
-        <div className="hidden md:flex items-center gap-1">
-          {links.map(({ href, label }) => {
+        
+        <div className="hidden lg:flex items-center space-x-6 text-[11px] font-bold uppercase tracking-[0.15em]">
+          {NAV_LINKS.map(({ href, label }) => {
             const active = path === href
             return (
               <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all"
-                style={{
-                  color: active ? '#fff' : '#7c8492',
-                  background: active ? 'rgba(255,255,255,.06)' : 'transparent',
-                }}
+                className={`transition-colors pb-1 border-b-2 ${
+                  active 
+                    ? 'text-terminal-text-primary border-terminal-blue' 
+                    : 'text-terminal-text-secondary border-transparent hover:text-terminal-text-primary'
+                }`}
               >
-                <div style={{
-                  width: 7, height: 7, borderRadius: 2, flexShrink: 0,
-                  background: active ? '#4f95d6' : '#2a313b',
-                }} />
                 {label}
               </Link>
             )
           })}
         </div>
+      </div>
 
-        <div className="flex-1" />
-
-        {/* Agent badge */}
-        <div className="hidden md:flex items-center gap-2.5">
-          <div style={{
-            width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-            background: 'linear-gradient(135deg,#16b8a6,#0a8f80)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 700, fontSize: 11,
-          }}>AM</div>
-          <div style={{ lineHeight: 1.3 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#e6eef8' }}>Analytics Model</div>
-            <div style={{ fontSize: 10.5, color: '#4f95d6', fontWeight: 500 }}>Agente · en vivo</div>
-          </div>
+      <div className="flex items-center space-x-4">
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-terminal-text-secondary w-3.5 h-3.5 group-focus-within:text-terminal-blue transition-colors" />
+          <input 
+            type="text" 
+            placeholder="FIND MATCH OR TEAM..." 
+            className="bg-terminal-alt border border-terminal-border pl-10 pr-4 py-1.5 text-[10px] font-mono rounded-sm focus:outline-none focus:border-terminal-blue transition-all w-64 placeholder:opacity-50 text-terminal-text-primary"
+          />
         </div>
-
-        {/* Mobile links */}
-        <div className="flex md:hidden items-center gap-2">
-          {links.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
-              style={{ color: path === href ? '#4f95d6' : '#5b636e' }}
-            >
-              {label.slice(0, 3)}
-            </Link>
-          ))}
-        </div>
+        <button className="bg-terminal-blue hover:bg-blue-600 text-black px-4 py-1.5 rounded-sm text-[10px] font-bold transition-all uppercase tracking-tighter shadow-[0_0_15px_rgba(58,160,255,0.2)]">
+          Live Monitor
+        </button>
       </div>
     </nav>
   )
